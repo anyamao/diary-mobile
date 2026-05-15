@@ -84,6 +84,8 @@ export default function EditAlarmScreen() {
 
     try {
       await AlarmService.saveAlarm(updatedAlarm);
+      await AlarmService.scheduleAllAlarms();
+
       Alert.alert("Успех", "Будильник обновлён", [
         { text: "OK", onPress: () => router.back() },
       ]);
@@ -101,6 +103,8 @@ export default function EditAlarmScreen() {
     if (confirmed) {
       try {
         await AlarmService.deleteAlarm(id);
+        await AlarmService.scheduleAllAlarms();
+
         router.back();
       } catch (error) {
         Alert.alert("Ошибка", "Не удалось удалить будильник");

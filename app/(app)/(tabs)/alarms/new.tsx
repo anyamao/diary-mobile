@@ -41,6 +41,16 @@ export default function NewAlarmScreen() {
 
     const timeString = `${time.getHours().toString().padStart(2, "0")}:${time.getMinutes().toString().padStart(2, "0")}`;
 
+    // Проверка для однократного будильника
+    if (repeatType === "once") {
+      const alarmDate = new Date();
+      alarmDate.setHours(time.getHours(), time.getMinutes(), 0, 0);
+      if (alarmDate <= new Date()) {
+        Alert.alert("Ошибка", "Нельзя установить будильник на прошедшее время");
+        return;
+      }
+    }
+
     const newAlarm: Alarm = {
       id: Date.now().toString(),
       title: title.trim(),

@@ -1,11 +1,9 @@
 import { useEffect, useRef } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 import { useAuthStore } from "../store/authStore";
-import { AlarmService } from ".././services/AlarmService";
 
-// Настройка каналов для Android
 Notifications.setNotificationChannelAsync("alarms", {
   name: "Будильники",
   importance: Notifications.AndroidImportance.MAX,
@@ -16,41 +14,74 @@ Notifications.setNotificationChannelAsync("alarms", {
 });
 
 export default function RootLayout() {
-  const notificationListener = useRef<any>();
-  const responseListener = useRef<any>();
   const { checkAuth } = useAuthStore();
+  const lastNotification = useRef<string>();
 
   useEffect(() => {
     checkAuth();
+    requestPermissions();
 
     // Слушатель для уведомлений
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
+    const subscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
         console.log("Notification received:", notification);
-      });
+        const { data } = notification.request.content;
+        if (
+          data?.alarmId &&
+          data?.type === "alarm" &&
+          lastNotification.current !== data.alarmId
+        ) {
+          lastNotification.current = data.alarmId;
+          router.push({
+            pathname: "/alarm-ring",
+            params: { id: data.alarmId, title: data.title, note: data.note },
+          });
+        }
+      },
+    );
 
-    responseListener.current =
+    // Слушатель для нажатия на уведомление
+    const responseSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
         const { data } = response.notification.request.content;
-        if (data?.alarmId && data?.type === "alarm") {
-          // Здесь можно открыть экран сработавшего будильника
-          console.log("Alarm triggered:", data.alarmId);
+        if (data?.alarmId) {
+          router.push({
+            pathname: "/alarm-ring",
+            params: { id: data.alarmId, title: data.title, note: data.note },
+          });
         }
       });
 
     return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current,
-      );
-      Notifications.removeNotificationSubscription(responseListener.current);
+      subscription.remove();
+      responseSubscription.remove();
     };
   }, []);
+
+  const requestPermissions = async () => {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.log("Notification permissions not granted");
+    }
+  };
 
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="alarm-ring"
+        options={{ headerShown: false, presentation: "fullScreenModal" }}
+      />
     </Stack>
   );
 }

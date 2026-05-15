@@ -21,6 +21,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#fce7f3"
       },
+      "permissions": ["VIBRATE", "SET_VOLUME_KEY_LONG_PRESS_LISTENER"],
       "package": "com.yourcompany.diarymobile"
     },
     "plugins": ["expo-router"],
